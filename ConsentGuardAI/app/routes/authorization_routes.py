@@ -3,9 +3,9 @@
 
 from flask import Blueprint, jsonify, request
 
-from policy_engine.authorization import AuthorizationService
-from consent.consent_service import ConsentService
 from consent.consent_repository import ConsentRepository
+from consent.consent_service import ConsentService
+from policy_engine.authorization import AuthorizationService
 
 authorization_bp = Blueprint(
     "authorization",
@@ -13,30 +13,29 @@ authorization_bp = Blueprint(
     url_prefix="/api/authorization",
 )
 
-# Uses the same in-memory consent approach as the current consent API.
+# Temporary in-memory service.
+# This repository must eventually be shared with the consent API.
 _consent_service = ConsentService(ConsentRepository())
 _authorization_service = AuthorizationService(_consent_service)
 
 
 @authorization_bp.route("/check", methods=["POST"])
 def check_authorization():
-    """Check whether a user is authorized for a purpose and data categories."""
+    """Check authorization for each requested data category."""
     data = request.get_json(silent=True)
 
     if not isinstance(data, dict):
-        return jsonify({
-            "error": "Request body must be a JSON object."
-        }), 400
+        return jsonify({"error": "Request body must be a JSON object."}), 400
 
     user_id = data.get("user_id")
     purpose = data.get("purpose")
     data_categories = data.get("data_categories")
 
-    if not user_id or not isinstance(user_id, str):
-        return jsonify({"error": "user_id is required."}), 400
+    if not isinstance(user_id, str) or not user_id.strip():
+        return jsonify({"error": "user_id must be a non-empty string."}), 400
 
-    if not purpose or not isinstance(purpose, str):
-        return jsonify({"error": "purpose is required."}), 400
+    if not isinstance(purpose, str) or not purpose.strip():
+        return jsonify({"error": "purpose must be a non-empty string."}), 400
 
     if (
         not isinstance(data_categories, list)
@@ -50,23 +49,35 @@ def check_authorization():
             "error": "data_categories must be a non-empty list of strings."
         }), 400
 
+    decisions = []
+
     try:
-        decision = _authorization_service.authorize(
-            user_id=user_id,
-            purpose=purpose,
-            data_categories=data_categories,
-        )
+        for category in data_categories:
+            decision = _authorization_service.authorize(
+                user_id=user_id,
+                purpose=purpose,
+                data_category=category,
+            )
+            decisions.append(decision)
     except (TypeError, ValueError) as exc:
         return jsonify({"error": str(exc)}), 400
 
-    allowed = getattr(decision, "allowed", False)
-    reason = getattr(decision, "reason", None)
+    allowed = all(decision.allowed for decision in decisions)
+    reasons = [
+        decision.reason
+        for decision in decisions
+        if not decision.allowed
+    ]
 
     return jsonify({
-        "authorized": bool(allowed),
-        "reason": reason or (
-            "Authorization granted."
-            if allowed
-            else "Authorization denied."
-        ),
+        "authorized": allowed,
+        "reason": "; ".join(reasons) if reasons else "Authorization granted.",
+        "decisions": [
+            {
+                "data_category": decision.data_category,
+                "authorized": decision.allowed,
+                "reason": decision.reason,
+            }
+            for decision in decisions
+        ],
     }), 200
