@@ -11,4 +11,12 @@ def create_app():
 
     db.init_app(app)
 
+    from database import models
+    from database.connection import init_database
+    from app.routes.consent_routes import consent_bp
+
+    init_database(app)
+    app.register_blueprint(consent_bp)
+
     return app
+
