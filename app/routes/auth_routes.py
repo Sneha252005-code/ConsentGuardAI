@@ -1,19 +1,22 @@
 
 from flask import Blueprint, jsonify, request, session
-from flask_limiter.util import get_remote_address
 
+from app.middleware.rate_limit import (
+    login_rate_limit,
+    register_rate_limit,
+)
 from security.authentication import hash_password, verify_password
 from security.validation import validate_email, validate_password
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
-
-# Temporary in-memory storage for initial testing only.
-# Replace with the project's database user model before production.
+# Temporary storage for testing only.
+# Replace with database storage before production.
 _users = {}
 
 
 @auth_bp.route("/register", methods=["POST"])
+@register_rate_limit
 def register():
     data = request.get_json(silent=True)
 
@@ -37,6 +40,7 @@ def register():
 
 
 @auth_bp.route("/login", methods=["POST"])
+@login_rate_limit
 def login():
     data = request.get_json(silent=True)
 
