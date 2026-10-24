@@ -14,9 +14,13 @@ def create_app():
     from database import models
     from database.connection import init_database
     from app.routes.consent_routes import consent_bp
+    from app.routes.authorization_routes import authorization_bp
+
 
     init_database(app)
     app.register_blueprint(consent_bp)
+    app.register_blueprint(authorization_bp)
+
 
     return app
 
