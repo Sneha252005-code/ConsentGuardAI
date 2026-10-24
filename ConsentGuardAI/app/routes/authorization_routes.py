@@ -3,8 +3,7 @@
 
 from flask import Blueprint, jsonify, request
 
-from consent.consent_repository import ConsentRepository
-from consent.consent_service import ConsentService
+from app.consent_context import consent_service
 from policy_engine.authorization import AuthorizationService
 
 authorization_bp = Blueprint(
@@ -13,10 +12,7 @@ authorization_bp = Blueprint(
     url_prefix="/api/authorization",
 )
 
-# Temporary in-memory service.
-# This repository must eventually be shared with the consent API.
-_consent_service = ConsentService(ConsentRepository())
-_authorization_service = AuthorizationService(_consent_service)
+_authorization_service = AuthorizationService(consent_service)
 
 
 @authorization_bp.route("/check", methods=["POST"])
@@ -71,7 +67,10 @@ def check_authorization():
 
     return jsonify({
         "authorized": allowed,
-        "reason": "; ".join(reasons) if reasons else "Authorization granted.",
+        "reason": (
+            "; ".join(reasons)
+            if reasons else "Authorization granted."
+        ),
         "decisions": [
             {
                 "data_category": decision.data_category,

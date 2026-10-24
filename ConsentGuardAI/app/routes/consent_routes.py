@@ -3,18 +3,18 @@
 
 from flask import Blueprint, jsonify, request
 
-from consent.consent_repository import ConsentRepository
-from consent.consent_service import ConsentService
+from app.consent_context import consent_service
 
-consent_bp = Blueprint("consent", __name__, url_prefix="/api/consent")
-
-# Temporary in-memory service for these routes.
-# We'll connect it to the database repository in the next integration step.
-_consent_service = ConsentService(ConsentRepository())
+consent_bp = Blueprint(
+    "consent",
+    __name__,
+    url_prefix="/api/consent",
+)
 
 
 @consent_bp.post("/")
 def grant_consent():
+    """Grant consent for specific data categories and a purpose."""
     payload = request.get_json(silent=True)
 
     if not isinstance(payload, dict):
@@ -33,14 +33,17 @@ def grant_consent():
     if (
         not isinstance(categories, list)
         or not categories
-        or any(not isinstance(item, str) or not item.strip() for item in categories)
+        or not all(
+            isinstance(item, str) and item.strip()
+            for item in categories
+        )
     ):
-        return jsonify(
-            {"error": "data_categories must be a non-empty list of strings."}
-        ), 400
+        return jsonify({
+            "error": "data_categories must be a non-empty list of strings."
+        }), 400
 
     try:
-        record = _consent_service.grant_consent(
+        record = consent_service.grant_consent(
             user_id=user_id,
             purpose=purpose,
             data_categories=categories,
@@ -59,7 +62,8 @@ def grant_consent():
 
 @consent_bp.get("/<consent_id>")
 def get_consent(consent_id):
-    record = _consent_service.get_consent(consent_id)
+    """Retrieve a consent record."""
+    record = consent_service.get_consent(consent_id)
 
     if record is None:
         return jsonify({"error": "Consent not found."}), 404
@@ -71,15 +75,17 @@ def get_consent(consent_id):
         "data_categories": list(record.data_categories),
         "granted": record.granted,
         "withdrawn_at": (
-            record.withdrawn_at.isoformat() if record.withdrawn_at else None
+            record.withdrawn_at.isoformat()
+            if record.withdrawn_at else None
         ),
     }), 200
 
 
 @consent_bp.post("/<consent_id>/withdraw")
 def withdraw_consent(consent_id):
+    """Withdraw an existing consent record."""
     try:
-        record = _consent_service.withdraw_consent(consent_id)
+        record = consent_service.withdraw_consent(consent_id)
     except KeyError:
         return jsonify({"error": "Consent not found."}), 404
 
@@ -87,7 +93,8 @@ def withdraw_consent(consent_id):
         "consent_id": record.consent_id,
         "granted": record.granted,
         "withdrawn_at": (
-            record.withdrawn_at.isoformat() if record.withdrawn_at else None
+            record.withdrawn_at.isoformat()
+            if record.withdrawn_at else None
         ),
-        "message": "Consent withdrawn; future matching authorization requests must be denied.",
+        "message": "Consent withdrawn.",
     }), 200
