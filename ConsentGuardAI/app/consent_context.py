@@ -1,6 +1,8 @@
+
 """Shared consent service for the API routes."""
 
-from consent.consent_repository import ConsentRepository
+from app import db
 from consent.consent_service import ConsentService
+from database.repositories import ConsentDatabaseRepository
 
-consent_service = ConsentService(ConsentRepository())
+consent_service = ConsentService(ConsentDatabaseRepository())

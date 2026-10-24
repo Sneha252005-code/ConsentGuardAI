@@ -1,5 +1,5 @@
 
-from __future__ import annotations
+"""Business logic for managing purpose-specific user consent."""
 
 from typing import Optional
 
@@ -7,10 +7,11 @@ from consent.consent_repository import ConsentRecord, ConsentRepository
 
 
 class ConsentService:
-    """Business logic for managing purpose-specific user consent."""
+    """Manage consent using an injected repository."""
 
-    def __init__(self, repository: Optional[ConsentRepository] = None) -> None:
-        self.repository = repository or ConsentRepository()
+    def __init__(self, repository=None):
+        # Keep in-memory storage as the default for existing unit tests.
+        self.repository = repository if repository is not None else ConsentRepository()
 
     def grant_consent(
         self,
@@ -18,7 +19,7 @@ class ConsentService:
         purpose: str,
         data_categories: list[str],
     ) -> ConsentRecord:
-        """Record explicit consent for specific data categories and a purpose."""
+        """Record explicit consent for specific categories and a purpose."""
         return self.repository.create(
             user_id=user_id,
             purpose=purpose,
@@ -39,7 +40,7 @@ class ConsentService:
         purpose: str,
         data_category: str,
     ) -> bool:
-        """Return True only when an active matching consent exists."""
+        """Check whether matching active consent exists."""
         return (
             self.repository.find_active(
                 user_id=user_id,

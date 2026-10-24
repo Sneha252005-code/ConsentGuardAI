@@ -52,7 +52,7 @@ def grant_consent():
         return jsonify({"error": str(exc)}), 400
 
     return jsonify({
-        "consent_id": record.consent_id,
+        "consent_id": record.id,
         "user_id": record.user_id,
         "purpose": record.purpose,
         "data_categories": list(record.data_categories),
@@ -90,7 +90,7 @@ def withdraw_consent(consent_id):
         return jsonify({"error": "Consent not found."}), 404
 
     return jsonify({
-        "consent_id": record.consent_id,
+        "consent_id": record.id,
         "granted": record.granted,
         "withdrawn_at": (
             record.withdrawn_at.isoformat()
