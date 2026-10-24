@@ -69,7 +69,7 @@ def get_consent(consent_id):
         return jsonify({"error": "Consent not found."}), 404
 
     return jsonify({
-        "consent_id": record.consent_id,
+        "consent_id": record.id,
         "user_id": record.user_id,
         "purpose": record.purpose,
         "data_categories": list(record.data_categories),
