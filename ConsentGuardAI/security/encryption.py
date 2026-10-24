@@ -66,3 +66,6 @@ def decrypt_data(ciphertext: str) -> str:
         raise
     except Exception as exc:
         raise EncryptionError("Data decryption failed.") from exc
+from dotenv import load_dotenv
+
+load_dotenv()
