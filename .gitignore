@@ -2,3 +2,7 @@
 __pycache__/
 *.py[cod]
 .env
+
+# Local database files
+instance/
+*.db
