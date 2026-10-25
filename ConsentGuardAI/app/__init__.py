@@ -10,6 +10,7 @@ def create_app():
 
     db.init_app(app)
 
+<<<<<<< HEAD
     from app.middleware.rate_limit import limiter
     from app.middleware.security_headers import register_security_headers
     from app.routes.auth_routes import auth_bp
@@ -17,5 +18,18 @@ def create_app():
     limiter.init_app(app)
     register_security_headers(app)
     app.register_blueprint(auth_bp)
+=======
+    from database import models
+    from database.connection import init_database
+    from app.routes.consent_routes import consent_bp
+    from app.routes.authorization_routes import authorization_bp
+
+
+    init_database(app)
+    app.register_blueprint(consent_bp)
+    app.register_blueprint(authorization_bp)
+
+>>>>>>> member2
 
     return app
+
