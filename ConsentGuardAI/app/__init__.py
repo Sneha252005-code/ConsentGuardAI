@@ -14,16 +14,22 @@ def create_app():
     from app.middleware.rate_limit import limiter
     from app.middleware.security_headers import register_security_headers
     from app.routes.auth_routes import auth_bp
-    from database import models
-    from database.connection import init_database
+    from app.routes.record_routes import record_bp
+    from app.routes.audit_routes import audit_bp
     from app.routes.consent_routes import consent_bp
     from app.routes.authorization_routes import authorization_bp
+    from database import models
+    from database.connection import init_database
 
     limiter.init_app(app)
     register_security_headers(app)
+
     app.register_blueprint(auth_bp)
 
     init_database(app)
+
+    app.register_blueprint(record_bp)
+    app.register_blueprint(audit_bp)
     app.register_blueprint(consent_bp)
     app.register_blueprint(authorization_bp)
 

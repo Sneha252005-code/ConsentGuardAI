@@ -1,17 +1,13 @@
 
-# Python cache and compiled files
-__pycache__/
-*.py[cod]
-.pytest_cache/
-
-# Virtual environments
-.venv/
-venv/
-
 # Environment variables and secrets
 .env
 .env.*
 !.env.example
+
+# Virtual environments
+.venv/
+venv/
+env/
 
 # Local database and instance files
 instance/
@@ -19,6 +15,12 @@ instance/
 *.sqlite
 *.sqlite3
 
+# Python cache and test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
 # Editor and operating system files
 .vscode/
 .DS_Store
+Thumbs.db
