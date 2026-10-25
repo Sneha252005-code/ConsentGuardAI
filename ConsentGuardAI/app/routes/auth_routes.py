@@ -1,9 +1,14 @@
-﻿"""Authentication routes for ConsentGuardAI."""
+
+"""Authentication routes for ConsentGuardAI."""
 
 from flask import Blueprint, jsonify, request, session
 from sqlalchemy.exc import IntegrityError
 
 from app import db
+from app.middleware.rate_limit import (
+    login_rate_limit,
+    register_rate_limit,
+)
 from database.models import User
 from security.authentication import hash_password, verify_password
 from security.validation import validate_email, validate_password
@@ -12,6 +17,7 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
 @auth_bp.route("/register", methods=["POST"])
+@register_rate_limit
 def register():
     """Register a user in the database."""
     data = request.get_json(silent=True)
@@ -42,8 +48,9 @@ def register():
 
 
 @auth_bp.route("/login", methods=["POST"])
+@login_rate_limit
 def login():
-    """Authenticate a user and store their ID in the session."""
+    """Authenticate a user and store their database ID in the session."""
     data = request.get_json(silent=True)
 
     if not isinstance(data, dict):

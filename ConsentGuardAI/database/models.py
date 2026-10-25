@@ -1,5 +1,4 @@
 
-
 """SQLAlchemy models for ConsentGuardAI."""
 
 from datetime import datetime, timezone
