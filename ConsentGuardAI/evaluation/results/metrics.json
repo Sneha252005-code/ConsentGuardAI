@@ -1,0 +1,9 @@
+{
+  "total_cases": 10,
+  "correct_predictions": 10,
+  "incorrect_predictions": 0,
+  "accuracy": 1.0,
+  "blocked_cases": 6,
+  "allowed_cases": 4,
+  "error_cases": 0
+}
