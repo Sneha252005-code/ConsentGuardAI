@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Data Records | ConsentGuardAI{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <h1>Data Records</h1>
+    <p>Look up a consent record using its unique consent ID.</p>
+</section>
+
+<section class="form-card">
+    <form id="records-form">
+        <label for="consent-id">Consent ID</label>
+        <input
+            type="text"
+            id="consent-id"
+            name="consent_id"
+            placeholder="Enter consent ID"
+            required
+        >
+        <button type="submit" class="button">Find Record</button>
+    </form>
+
+    <p id="records-message" role="status" aria-live="polite"></p>
+
+    <div class="table-wrapper">
+        <table>
+            <tbody id="records-table-body">
+                <tr>
+                    <th>Consent ID</th>
+                    <td>—</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/records.js') }}"></script>
+{% endblock %}

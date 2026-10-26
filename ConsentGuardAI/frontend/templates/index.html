@@ -1,0 +1,43 @@
+<!-- index.html -->
+{% extends "base.html" %}
+
+{% block title %}Home | ConsentGuardAI{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <p class="eyebrow">PRIVACY-FIRST AI</p>
+    <h1>Your Data. Your Consent. Your Control.</h1>
+    <p class="hero-text">
+        ConsentGuardAI helps ensure that personal data is used only
+        for purposes covered by the user's consent.
+    </p>
+
+    <div class="hero-actions">
+        <a class="button" href="/consent">Manage Consent</a>
+        <a class="button button-secondary" href="/authorization">
+            Check Authorization
+        </a>
+    </div>
+</section>
+
+<section class="card-grid">
+    <article class="card">
+        <h2>Consent Management</h2>
+        <p>Grant or withdraw permission for specific data categories and purposes.</p>
+        <a href="/consent">Manage consent →</a>
+    </article>
+
+    <article class="card">
+        <h2>Purpose-Based Access</h2>
+        <p>Check whether a proposed data use matches an active consent.</p>
+        <a href="/authorization">Check access →</a>
+    </article>
+
+    <article class="card">
+        <h2>Audit and Records</h2>
+        <p>Explore the project's record and audit interfaces.</p>
+        <a href="/record">View records →</a>
+        <a href="/audit">View audit page →</a>
+    </article>
+</section>
+{% endblock %}

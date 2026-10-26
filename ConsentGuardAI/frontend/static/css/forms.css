@@ -1,0 +1,126 @@
+.form-card {
+    width: min(100%, 620px);
+    margin: 0 auto;
+}
+
+.form-card h1 {
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+}
+
+.form-card > p {
+    color: var(--muted);
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+label,
+legend {
+    font-weight: 700;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 12px 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--text);
+    font: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid #c7d2fe;
+    border-color: var(--primary);
+}
+
+input::placeholder {
+    color: #9ca3af;
+}
+
+form .button {
+    width: 100%;
+    margin-top: 8px;
+}
+
+fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 400;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    accent-color: var(--primary);
+}
+
+#login-message,
+#register-message,
+#consent-message,
+#records-message,
+#authorization-result,
+#audit-message {
+    overflow-wrap: anywhere;
+}
+
+#login-message:empty,
+#register-message:empty,
+#consent-message:empty {
+    display: none;
+}
+
+.table-wrapper {
+    width: 100%;
+    margin-top: 20px;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #ffffff;
+}
+
+th,
+td {
+    padding: 13px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background: #f9fafb;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+    .form-card {
+        padding: 18px;
+    }
+
+    th,
+    td {
+        padding: 10px;
+    }
+}
