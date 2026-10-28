@@ -9,6 +9,8 @@ from policy_engine.policy_rules import PolicyRules
 
 @dataclass(frozen=True)
 class AuthorizationDecision:
+    """Result of an authorization check."""
+
     allowed: bool
     user_id: str
     purpose: str
@@ -18,64 +20,52 @@ class AuthorizationDecision:
 
 
 class AuthorizationService:
-    """Authorize data use only when matching active consent exists."""
+    """Authorize data access based on active consent and purpose."""
 
-    def __init__(
-        self,
-        consent_service: ConsentService,
-        policy_rules: PolicyRules | None = None,
-    ) -> None:
+    def __init__(self, consent_service: ConsentService):
         self.consent_service = consent_service
-        self.policy_rules = policy_rules or PolicyRules()
+        self.policy_rules = PolicyRules()
 
     def authorize(
         self,
-        *,
         user_id: str,
         purpose: str,
         data_category: str,
     ) -> AuthorizationDecision:
-        """Check consent and purpose before allowing data use."""
+        """Check whether the requested data use is authorized."""
 
-        if not all(
-            isinstance(value, str) and value.strip()
-            for value in (user_id, purpose, data_category)
-        ):
-            return AuthorizationDecision(
-                False,
-                user_id if isinstance(user_id, str) else "",
-                purpose if isinstance(purpose, str) else "",
-                data_category if isinstance(data_category, str) else "",
-                "Missing or invalid authorization details; access denied.",
+        if not isinstance(user_id, str) or not user_id.strip():
+            raise ValueError("user_id must be a non-empty string.")
+
+        if not isinstance(purpose, str) or not purpose.strip():
+            raise ValueError("purpose must be a non-empty string.")
+
+        if not isinstance(data_category, str) or not data_category.strip():
+            raise ValueError("data_category must be a non-empty string.")
+
+        try:
+            allowed = self.consent_service.has_consent(
+                user_id=user_id,
+                purpose=purpose,
+                data_category=data_category,
             )
-
-        record = self.consent_service.repository.find_active(
-            user_id=user_id,
-            purpose=purpose,
-            data_category=data_category,
-        )
-
-        if record is None:
+        except Exception:
             return AuthorizationDecision(
-                False,
-                user_id,
-                purpose,
-                data_category,
-                "No matching active consent; access denied.",
+                allowed=False,
+                user_id=user_id,
+                purpose=purpose,
+                data_category=data_category,
+                reason="Unable to verify consent.",
             )
-
-        result = self.policy_rules.evaluate(
-            consent_active=record.granted and record.withdrawn_at is None,
-            requested_purpose=purpose,
-            consented_purpose=record.purpose,
-            data_category_allowed=data_category in record.data_categories,
-        )
 
         return AuthorizationDecision(
-            allowed=result.allowed,
+            allowed=allowed,
             user_id=user_id,
             purpose=purpose,
             data_category=data_category,
-            reason=result.reason,
-            consent_id=record.consent_id if result.allowed else None,
+            reason=(
+                "Authorization granted."
+                if allowed
+                else "No active consent matches this user, purpose, and data category."
+            ),
         )

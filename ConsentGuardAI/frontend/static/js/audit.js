@@ -4,7 +4,7 @@ async function loadAuditEvents() {
     if (!tableBody) return;
 
     try {
-        const data = await apiRequest("/api/audit/");
+        const data = await apiRequest("/api/audit");
         const events = data.events || [];
 
         tableBody.replaceChildren();
