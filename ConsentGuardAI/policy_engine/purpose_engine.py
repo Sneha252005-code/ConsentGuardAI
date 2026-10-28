@@ -5,11 +5,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 import logging
 import os
-import re
 
 logger = logging.getLogger(__name__)
-
-# Conservative threshold; validate it against your project test data.
 SIMILARITY_THRESHOLD = 0.80
 
 
@@ -23,7 +20,7 @@ class PurposeCheck:
 
 
 class PurposeEngine:
-    """Compare requested and consented purposes using semantic similarity."""
+    """Compare purposes; similarity alone never grants authorization."""
 
     @staticmethod
     def normalize(purpose: str) -> str:
@@ -34,7 +31,6 @@ class PurposeEngine:
     @staticmethod
     @lru_cache(maxsize=1)
     def _load_model():
-        # Lazy loading avoids loading the NLP model unless needed.
         from sentence_transformers import SentenceTransformer
 
         model_name = os.getenv(
@@ -59,13 +55,12 @@ class PurposeEngine:
                 "Purpose is missing or invalid; access denied.",
             )
 
-        # Exact matches are safe to recognize without loading an NLP model.
         if requested == consented:
             return PurposeCheck(
                 True,
                 requested_purpose,
                 consented_purpose,
-                "Requested purpose exactly matches the consented purpose.",
+                "Purpose exactly matches the consented purpose.",
                 1.0,
             )
 
@@ -78,7 +73,6 @@ class PurposeEngine:
             )
             similarity = float(embeddings[0] @ embeddings[1])
         except Exception:
-            # Fail closed: model errors must never grant authorization.
             logger.exception("Purpose similarity model failed")
             return PurposeCheck(
                 False,
@@ -88,18 +82,21 @@ class PurposeEngine:
             )
 
         if similarity >= SIMILARITY_THRESHOLD:
-            return PurposeCheck(
-                True,
-                requested_purpose,
-                consented_purpose,
-                "Purpose similarity meets the configured threshold; consent and category checks are still required.",
-                similarity,
+            reason = (
+                "Purpose is semantically similar, but explicit consent "
+                "for the requested purpose is required."
+            )
+        else:
+            reason = (
+                "Requested purpose differs from the consented purpose; "
+                "authorization is denied."
             )
 
+        # A similarity score is evidence for review, not permission.
         return PurposeCheck(
             False,
             requested_purpose,
             consented_purpose,
-            "Requested purpose differs from the consented purpose; additional authorization is required.",
+            reason,
             similarity,
         )

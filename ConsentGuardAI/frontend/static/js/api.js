@@ -1,3 +1,4 @@
+
 /**
  * Shared helper for sending JSON requests to the Flask API.
  */
@@ -5,6 +6,7 @@
 async function apiRequest(url, options = {}) {
     const response = await fetch(url, {
         ...options,
+        credentials: "same-origin",
         headers: {
             "Content-Type": "application/json",
             ...(options.headers || {})
