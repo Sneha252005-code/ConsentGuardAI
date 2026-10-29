@@ -1,4 +1,5 @@
-﻿"""API routes for audit logs."""
+﻿
+"""API routes for audit logs."""
 
 from flask import Blueprint, jsonify, request, session
 
@@ -11,8 +12,10 @@ audit_bp = Blueprint("audit", __name__, url_prefix="/api/audit")
 def _authenticated_user_id():
     """Return the logged-in user's ID from the Flask session."""
     user_id = session.get("user_id")
+
     if user_id is None:
         return None
+
     try:
         return int(user_id)
     except (TypeError, ValueError):
@@ -21,8 +24,9 @@ def _authenticated_user_id():
 
 @audit_bp.route("", methods=["GET"])
 def list_audit_events():
-    """Return recent audit events belonging to the authenticated user."""
+    """Return recent audit events for the logged-in user."""
     user_id = _authenticated_user_id()
+
     if user_id is None:
         return jsonify({"error": "Authentication required"}), 401
 
@@ -41,8 +45,12 @@ def list_audit_events():
         {
             "id": event.id,
             "event_type": event.event_type,
+            "user_id": event.user_id,
             "description": event.description,
-            "created_at": event.created_at.isoformat(),
+            "created_at": (
+                event.created_at.isoformat()
+                if event.created_at else ""
+            ),
         }
         for event in user_events
     ]), 200
@@ -52,14 +60,14 @@ def list_audit_events():
 def check_audit_integrity():
     """Check the integrity of the available audit history."""
     user_id = _authenticated_user_id()
+
     if user_id is None:
         return jsonify({"error": "Authentication required"}), 401
 
     events = fetch_recent_events(limit=100)
     user_events = [event for event in events if event.user_id == user_id]
-    is_valid = verify_audit_chain(user_events)
 
     return jsonify({
-        "integrity_valid": is_valid,
+        "integrity_valid": verify_audit_chain(user_events),
         "entries_checked": len(user_events),
     }), 200

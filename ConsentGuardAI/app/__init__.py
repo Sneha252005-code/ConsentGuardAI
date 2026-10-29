@@ -67,5 +67,8 @@ def create_app():
     @app.route("/audit")
     def audit_page():
         return render_template("audit.html")
+    @app.route("/chat")
+    def chat_page():
+        return render_template("chat.html")
 
     return app

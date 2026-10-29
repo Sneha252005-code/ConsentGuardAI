@@ -6,7 +6,7 @@ from flask import Blueprint, jsonify, request, session
 
 from app.consent_context import consent_service
 from audit.audit_service import record_event
-from genai_gateway import GenAIGateway, MockProvider
+from genai_gateway import GenAIGateway, OpenAIProvider
 from policy_engine.authorization import AuthorizationService
 from policy_engine.reuse_detector import DataReuseDetector
 
@@ -14,13 +14,13 @@ logger = logging.getLogger(__name__)
 
 genai_bp = Blueprint("genai", __name__)
 
-gateway = GenAIGateway(provider=MockProvider())
+gateway = GenAIGateway()
 authorization_service = AuthorizationService(consent_service)
 reuse_detector = DataReuseDetector()
 
 
 def log_audit_event(event_type, description, user_id):
-    """Record an audit event without exposing internal errors to users."""
+    """Record an audit event without exposing internal errors."""
     try:
         record_event(
             event_type=event_type,
@@ -55,22 +55,26 @@ def generate():
     if not isinstance(prompt, str) or not prompt.strip():
         return jsonify({"error": "A non-empty prompt is required."}), 400
 
-    # Always use the authenticated session's user ID.
+    # Use the authenticated session's user ID.
     session_user_id = session.get("user_id")
 
     if session_user_id is None:
-        return jsonify({"error": "Authentication required."}), 401
+        return jsonify({
+            "error": "Authentication required."
+        }), 401
 
     try:
         authenticated_user_id = int(session_user_id)
     except (TypeError, ValueError):
-        return jsonify({"error": "Invalid authenticated user."}), 401
+        return jsonify({
+            "error": "Invalid authenticated user."
+        }), 401
 
     purpose = purpose.strip()
     data_category = data_category.strip()
     prompt = prompt.strip()
 
-    # Check for reuse of previously stored protected data.
+    # 1. Check for reuse of previously stored protected data.
     try:
         reuse = reuse_detector.detect(
             user_id=authenticated_user_id,
@@ -90,6 +94,8 @@ def generate():
             "decision": "BLOCK",
         }), 503
 
+    # Stop if protected data is detected.
+    # Do not send the prompt to OpenAI in this case.
     if reuse.detected:
         log_audit_event(
             event_type="DATA_REUSE_DETECTED",
@@ -109,7 +115,7 @@ def generate():
             "reason": reuse.reason,
         }), 200
 
-    # Check consent and authorization.
+    # 2. Check consent and authorization.
     try:
         decision = authorization_service.authorize(
             user_id=str(authenticated_user_id),
@@ -149,9 +155,26 @@ def generate():
             "reason": decision.reason,
         }), 403
 
-    # Generate only after reuse and authorization checks pass.
+    # 3. Call OpenAI only after the checks above pass.
     try:
+        provider = OpenAIProvider()
+        gateway.provider = provider
+
         result = gateway.generate(prompt)
+
+    except ValueError:
+        logger.exception("OpenAI configuration error")
+
+        log_audit_event(
+            event_type="GENERATION_FAILED",
+            description="AI provider configuration is missing or invalid.",
+            user_id=authenticated_user_id,
+        )
+
+        return jsonify({
+            "error": "AI provider is not configured correctly."
+        }), 503
+
     except Exception:
         logger.exception("Generation failed")
 
@@ -162,7 +185,7 @@ def generate():
         )
 
         return jsonify({
-            "error": "Generation failed."
+            "error": "Generation failed. Please try again."
         }), 503
 
     if not result.get("success"):
@@ -173,9 +196,13 @@ def generate():
         )
 
         return jsonify({
-            "error": result.get("message", "Generation failed.")
+            "error": result.get(
+                "message",
+                "Generation failed."
+            )
         }), 400
 
+    # 4. Record successful generation.
     log_audit_event(
         event_type="GENERATION_ALLOWED",
         description=(
