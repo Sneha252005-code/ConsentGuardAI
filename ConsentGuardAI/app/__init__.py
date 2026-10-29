@@ -33,6 +33,7 @@ def create_app():
 
     init_database(app)
 
+    # Register API blueprints
     app.register_blueprint(auth_bp)
     app.register_blueprint(record_bp)
     app.register_blueprint(audit_bp)
@@ -40,6 +41,7 @@ def create_app():
     app.register_blueprint(authorization_bp)
     app.register_blueprint(genai_bp, url_prefix="/api/genai")
 
+    # Website pages
     @app.route("/")
     def home():
         return render_template("index.html")
@@ -67,6 +69,7 @@ def create_app():
     @app.route("/audit")
     def audit_page():
         return render_template("audit.html")
+
     @app.route("/chat")
     def chat_page():
         return render_template("chat.html")

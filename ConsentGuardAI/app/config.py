@@ -1,7 +1,10 @@
 
+"""Application configuration for ConsentGuardAI."""
+
 import os
 from dotenv import load_dotenv
 
+# Load local environment variables before reading configuration.
 load_dotenv()
 
 
@@ -12,10 +15,13 @@ class Config:
         "DATABASE_URL",
         "sqlite:///consentguardai.db",
     )
-
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     DATA_ENCRYPTION_KEY = os.getenv("DATA_ENCRYPTION_KEY")
+
+    # OpenAI configuration
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
     DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
