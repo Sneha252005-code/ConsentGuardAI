@@ -6,3 +6,8 @@ __pycache__/
 # Local database files
 instance/
 *.db
+
+.venv/
+**/.env
+__pycache__/
+*.pyc
