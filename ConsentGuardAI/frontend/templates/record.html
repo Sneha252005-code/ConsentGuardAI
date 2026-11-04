@@ -1,41 +1,178 @@
 {% extends "base.html" %}
 
-{% block title %}Data Records | ConsentGuardAI{% endblock %}
+{% block title %}Data Tracking & Governance | ConsentGuardAI{% endblock %}
+{% block page_title %}Data Tracking & Governance{% endblock %}
+{% block page_subtitle %}Encrypted data assets governed under immutable purpose scopes and context boundaries{% endblock %}
 
 {% block content %}
-<section class="page-heading">
-    <h1>Data Records</h1>
-    <p>Look up a consent record using its unique consent ID.</p>
-</section>
+<!-- Security Banner -->
+<div class="card" style="background: linear-gradient(135deg, #1e1b4b, #312e81); color: #fff; border: 1px solid #4338ca; margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span class="badge" style="background: rgba(99, 102, 241, 0.3); color: #c7d2fe; border: 1px solid rgba(165, 180, 252, 0.3);">ENCRYPTION AT REST</span>
+                <span style="font-size: 0.8rem; color: #a5b4fc;">AES-256 Sealed &bull; In-Memory Decryption Only</span>
+            </div>
+            <h2 style="font-size: 1.35rem; margin: 0 0 6px; color: #fff; font-weight: 700;">Purpose-Bound Data Asset Registry</h2>
+            <p style="color: #c7d2fe; font-size: 0.86rem; max-width: 840px; margin: 0;">
+                All protected assets are encrypted prior to database persistence and linked to an immutable declared purpose. Future AI requests are evaluated against these records to detect and prevent unauthorized cross-session reuse.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary btn-sm" onclick="loadTrackedRecords()">
+                <span>🔄</span> Refresh Records
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('create-record-card').scrollIntoView({ behavior: 'smooth' })">
+                <span>➕</span> Track New Asset
+            </button>
+        </div>
+    </div>
+</div>
 
-<section class="form-card">
-    <form id="records-form">
-        <label for="consent-id">Consent ID</label>
-        <input
-            type="text"
-            id="consent-id"
-            name="consent_id"
-            placeholder="Enter consent ID"
-            required
-        >
-        <button type="submit" class="button">Find Record</button>
-    </form>
+<!-- Table of Tracked Records -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Protected Data Assets</div>
+            <div class="card-subtitle">Governed records with classification and bound purpose references</div>
+        </div>
+        <span class="badge badge-neutral" id="records-count-badge">0 Assets Tracked</span>
+    </div>
 
-    <p id="records-message" role="status" aria-live="polite"></p>
-
-    <div class="table-wrapper">
-        <table>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Asset ID</th>
+                    <th>Asset Title</th>
+                    <th>Data Summary</th>
+                    <th>Source Session</th>
+                    <th>Classification</th>
+                    <th>Bound Purpose</th>
+                    <th>Tracked Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
             <tbody id="records-table-body">
                 <tr>
-                    <th>Consent ID</th>
-                    <td>—</td>
+                    <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 32px;">
+                        Loading tracked records...
+                    </td>
                 </tr>
             </tbody>
         </table>
     </div>
-</section>
+</div>
+
+<!-- Track New Data Asset Form -->
+<div class="card" id="create-record-card" style="margin-top: 24px;">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Track &amp; Protect New Data Asset</div>
+            <div class="card-subtitle">Register confidential data with AES-256 encryption and an immutable purpose scope</div>
+        </div>
+    </div>
+
+    <form id="create-record-form" style="max-width: 820px;" novalidate>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+                <label for="record-title" class="form-label">Asset Title</label>
+                <input type="text" id="record-title" class="form-control" placeholder="e.g. Q3 Harassment Inquiry Witness Notes" required>
+            </div>
+
+            <div class="form-group">
+                <label for="record-classification" class="form-label">Data Classification</label>
+                <select id="record-classification" class="form-select">
+                    <option value="Confidential" selected>Confidential (Internal Sensitive)</option>
+                    <option value="Restricted Legal">Restricted Legal</option>
+                    <option value="Sensitive HR">Sensitive HR</option>
+                    <option value="Internal Restricted">Internal Restricted</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="record-original-purpose" class="form-label">
+                Bound Original Purpose
+            </label>
+            <input type="text" id="record-original-purpose" class="form-control" placeholder="e.g. HR Investigation Summary" required>
+            <small style="color: var(--text-muted); font-size: 0.76rem; display: block; margin-top: 4px;">
+                🔒 This purpose acts as an immutable reference. Any reuse attempt for incompatible purposes will be flagged or blocked.
+            </small>
+        </div>
+
+        <div class="form-group">
+            <label for="record-description" class="form-label">Safe Summary (Displayed in Tables &amp; Telemetry)</label>
+            <input type="text" id="record-description" class="form-control" placeholder="e.g. Formal interview findings and resolution terms" required>
+        </div>
+
+        <div class="form-group">
+            <label for="record-content" class="form-label">Sensitive Content to Protect</label>
+            <textarea id="record-content" class="form-control" rows="4" placeholder="Enter confidential document or conversation text. It will be encrypted immediately and never stored in plaintext." required></textarea>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+            <span id="record-form-status" style="font-size: 0.84rem; font-weight: 500;"></span>
+            <button type="submit" class="btn btn-primary" id="btn-save-record">
+                <span>🔒</span> Encrypt &amp; Track Asset
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal for Inspecting Record Details Safely -->
+<div id="record-detail-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="card" style="max-width: 580px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+            <div>
+                <h3 id="modal-record-title" style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);">Protected Asset</h3>
+                <span id="modal-record-id" style="font-size: 0.78rem; color: var(--text-muted);">Asset #—</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="closeRecordModal()">✕</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.88rem;">
+            <div>
+                <strong>Bound Purpose:</strong>
+                <span id="modal-record-purpose" style="color: #4338ca; font-weight: 600; margin-left: 6px;">—</span>
+            </div>
+            <div>
+                <strong>Classification:</strong>
+                <span id="modal-record-classification" class="badge badge-neutral" style="margin-left: 6px;">Confidential</span>
+            </div>
+            <div>
+                <strong>Source Session:</strong>
+                <code id="modal-record-source" style="margin-left: 6px;">—</code>
+            </div>
+            <div>
+                <strong>Summary:</strong>
+                <p id="modal-record-desc" style="color: var(--text-muted); margin-top: 4px; font-size: 0.84rem;">—</p>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; margin-top: 6px;">
+                <div style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #065f46; font-size: 0.8rem; margin-bottom: 6px;">
+                    <span>🛡️</span> Security &amp; Encryption State
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">
+                    Data ciphertext is encrypted with AES-256 (Fernet key). Plaintext is never exposed in the dashboard interface and is only decrypted in transient memory during gatekeeper reuse verification.
+                </p>
+            </div>
+        </div>
+
+        <div style="text-align: right; margin-top: 20px;">
+            <button class="btn btn-secondary btn-sm" onclick="closeRecordModal()">Close</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/records.js') }}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", loadTrackedRecords);
+
+    function closeRecordModal() {
+        const modal = document.getElementById("record-detail-modal");
+        if (modal) modal.style.display = "none";
+    }
+</script>
 {% endblock %}

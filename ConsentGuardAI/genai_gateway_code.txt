@@ -1,0 +1,111 @@
+﻿
+========== FILE: C:\Users\SNEHA\OneDrive\Desktop\ConsentGuardAI-main\ConsentGuardAI\genai_gateway\gateway.py ==========
+
+from genai_gateway.prompt_filter import filter_prompt
+
+
+class GenAIGateway:
+    """Gateway that checks prompts before they reach an AI provider."""
+
+    def __init__(self, provider=None):
+        self.provider = provider
+
+    def generate(self, prompt: str) -> dict:
+        # Check the prompt first.
+        result = filter_prompt(prompt)
+
+        if not result.allowed:
+            return {
+                "success": False,
+                "message": result.reason,
+                "response": None,
+            }
+
+        # Do not send prompts anywhere until a provider is configured.
+        if self.provider is None:
+            return {
+                "success": False,
+                "message": "AI provider is not configured.",
+                "response": None,
+            }
+
+        try:
+            response = self.provider.generate(prompt)
+            return {
+                "success": True,
+                "message": "Response generated successfully.",
+                "response": response,
+            }
+        except Exception:
+            return {
+                "success": False,
+                "message": "AI provider request failed.",
+                "response": None,
+            }
+
+========== FILE: C:\Users\SNEHA\OneDrive\Desktop\ConsentGuardAI-main\ConsentGuardAI\genai_gateway\prompt_filter.py ==========
+
+import re
+from dataclasses import dataclass
+
+
+@dataclass
+class FilterResult:
+    allowed: bool
+    reason: str = ""
+
+
+SENSITIVE_PATTERNS = [
+    re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE),
+    re.compile(r"\b(?:\+?\d[\d\s().-]{7,}\d)\b"),
+    re.compile(r"\b(?:sk-[A-Za-z0-9_-]{20,}|AKIA[A-Z0-9]{16})\b"),
+]
+
+INJECTION_PATTERNS = [
+    re.compile(r"ignore (all )?(previous|prior) instructions", re.IGNORECASE),
+    re.compile(r"reveal (the )?(system prompt|hidden instructions)", re.IGNORECASE),
+    re.compile(r"bypass (the )?(security|authorization|access control)", re.IGNORECASE),
+]
+
+
+def filter_prompt(prompt: str) -> FilterResult:
+    """Check a prompt for common sensitive-data patterns and injection phrases."""
+    if not isinstance(prompt, str) or not prompt.strip():
+        return FilterResult(False, "Prompt is empty or invalid.")
+
+    for pattern in SENSITIVE_PATTERNS:
+        if pattern.search(prompt):
+            return FilterResult(
+                False,
+                "Prompt may contain sensitive information."
+            )
+
+    for pattern in INJECTION_PATTERNS:
+        if pattern.search(prompt):
+            return FilterResult(
+                False,
+                "Prompt contains a potentially unsafe instruction."
+            )
+
+    return FilterResult(True, "Prompt passed basic checks.")
+
+========== FILE: C:\Users\SNEHA\OneDrive\Desktop\ConsentGuardAI-main\ConsentGuardAI\genai_gateway\provider_client.py ==========
+
+class MockProvider:
+    """A local mock AI provider for development and testing."""
+
+    def generate(self, prompt: str) -> str:
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("Prompt must not be empty.")
+
+        return (
+            "Mock AI response: Your request was received. "
+            "Connect a real AI provider to generate an actual answer."
+        )
+
+========== FILE: C:\Users\SNEHA\OneDrive\Desktop\ConsentGuardAI-main\ConsentGuardAI\genai_gateway\__init__.py ==========
+
+from genai_gateway.gateway import GenAIGateway
+from genai_gateway.provider_client import MockProvider
+
+__all__ = ["GenAIGateway", "MockProvider"]

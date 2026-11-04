@@ -3,45 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ConsentGuardAI — Purpose-Based GenAI Security{% endblock %}</title>
 
-    <title>{% block title %}ConsentGuardAI{% endblock %}</title>
-
-    <!-- Main stylesheets -->
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/main.css') }}">
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/forms.css') }}">
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/dashboard.css') }}">
-
+    <!-- Design System Stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
 
 <body>
-    <header class="site-header">
-        <a class="brand" href="/">ConsentGuardAI</a>
+    <div class="app-layout">
+        <!-- Enterprise SaaS Sidebar -->
+        <aside class="app-sidebar">
+            <div class="sidebar-header">
+                <a href="/" class="brand-link">
+                    <div class="brand-icon">🛡️</div>
+                    <div>
+                        <div class="brand-title">ConsentGuardAI</div>
+                        <div class="brand-subtitle">GenAI Security Platform</div>
+                    </div>
+                </a>
+            </div>
 
-        <nav>
-            <a href="/">Home</a>
-            <a href="/login">Login</a>
-            <a href="/register">Register</a>
-            <a href="/consent">Consent</a>
-            <a href="/authorization">Authorization</a>
-            <a href="/record">Records</a>
-            <a href="/audit">Audit</a>
-        </nav>
-    </header>
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">WORKSPACE</div>
+                
+                <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
 
-    <main class="container">
-        {% block content %}{% endblock %}
-    </main>
+                <a href="/chat" class="nav-item {% if request.path == '/chat' %}active{% endif %}">
+                    <span class="nav-icon">💬</span>
+                    <span>AI Workspace</span>
+                </a>
 
-    <footer class="site-footer">
-        <p>ConsentGuardAI — Your data, your consent.</p>
-    </footer>
+                <div class="nav-section-title">DATA GOVERNANCE</div>
 
-    <!-- Shared API helper -->
+                <a href="/record" class="nav-item {% if request.path == '/record' %}active{% endif %}">
+                    <span class="nav-icon">📁</span>
+                    <span>Protected Records</span>
+                </a>
+
+                <a href="/authorization" class="nav-item {% if request.path == '/authorization' %}active{% endif %}">
+                    <span class="nav-icon">⚖️</span>
+                    <span>Policy Inspector</span>
+                </a>
+
+                <a href="/audit" class="nav-item {% if request.path == '/audit' %}active{% endif %}">
+                    <span class="nav-icon">📜</span>
+                    <span>Audit Trail</span>
+                </a>
+
+                <div class="nav-section-title">COMPLIANCE</div>
+
+                <a href="/consent" class="nav-item {% if request.path == '/consent' %}active{% endif %}">
+                    <span class="nav-icon">🔒</span>
+                    <span>Consent Scopes</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-badge" id="sidebar-user-badge">
+                    <div class="user-info">
+                        <div class="user-email" id="sidebar-user-email">Checking session...</div>
+                        <div class="user-role" id="sidebar-user-role">Secured Environment</div>
+                    </div>
+                    <button id="auth-action-btn" class="btn btn-secondary btn-sm" onclick="handleAuthAction()">Sign In</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Application Area -->
+        <main class="app-main">
+            <header class="top-bar">
+                <div class="page-title-box">
+                    <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+                    <p>{% block page_subtitle %}Purpose-Based Authorization &amp; Data Protection for Generative AI{% endblock %}</p>
+                </div>
+
+                <div class="top-actions">
+                    <div class="header-user-pill" id="header-user-pill">
+                        <div class="header-user-status">
+                            <span class="status-indicator-dot" id="header-status-dot"></span>
+                            <span id="header-user-label">Active User</span>
+                        </div>
+                        <a href="/auth/logout" id="header-auth-link" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.78rem;">
+                            Sign Out
+                        </a>
+                    </div>
+                    <a href="/chat" class="btn btn-primary btn-sm">
+                        <span>💬</span> Open AI Workspace
+                    </a>
+                </div>
+            </header>
+
+            <div class="content-body">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Core API & Navigation Helper -->
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script>
+        // Global Auth state management
+        async function checkGlobalAuth() {
+            try {
+                const res = await fetch("/auth/me", { credentials: "same-origin" });
+                const data = await res.json();
+                
+                const emailEl = document.getElementById("sidebar-user-email");
+                const roleEl = document.getElementById("sidebar-user-role");
+                const authBtn = document.getElementById("auth-action-btn");
+                const headerLabel = document.getElementById("header-user-label");
+                const headerDot = document.getElementById("header-status-dot");
+                const headerAuthLink = document.getElementById("header-auth-link");
+
+                if (data && data.authenticated) {
+                    if (emailEl) emailEl.textContent = data.email;
+                    if (roleEl) roleEl.textContent = "Authorized User";
+                    if (headerLabel) headerLabel.textContent = data.email;
+                    if (headerDot) headerDot.classList.remove("offline");
+                    if (headerAuthLink) {
+                        headerAuthLink.textContent = "Sign Out";
+                        headerAuthLink.href = "/auth/logout";
+                    }
+                    if (authBtn) {
+                        authBtn.textContent = "Sign Out";
+                        authBtn.onclick = () => window.location.href = "/auth/logout";
+                    }
+                } else {
+                    if (emailEl) emailEl.textContent = "Guest Session";
+                    if (roleEl) roleEl.textContent = "Not Signed In";
+                    if (headerLabel) headerLabel.textContent = "Not Signed In";
+                    if (headerDot) headerDot.classList.add("offline");
+                    if (headerAuthLink) {
+                        headerAuthLink.textContent = "Sign In";
+                        headerAuthLink.href = "/login";
+                    }
+                    if (authBtn) {
+                        authBtn.textContent = "Sign In";
+                        authBtn.onclick = () => window.location.href = "/login";
+                    }
+                }
+            } catch (err) {
+                console.warn("Global authentication check:", err);
+            }
+        }
+
+        function handleAuthAction() {
+            window.location.href = "/login";
+        }
+
+        document.addEventListener("DOMContentLoaded", checkGlobalAuth);
+    </script>
 
     {% block extra_js %}{% endblock %}
 </body>

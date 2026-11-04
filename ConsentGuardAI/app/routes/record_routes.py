@@ -1,8 +1,6 @@
+"""API routes for encrypted protected records (Objectives 1 & 2, Screen C)."""
 
-"""API routes for encrypted protected records."""
-
-from flask import Blueprint, jsonify, request
-from flask_login import current_user
+from flask import Blueprint, jsonify, request, session
 
 from app import db
 from database.repositories import (
@@ -11,21 +9,26 @@ from database.repositories import (
     get_user_protected_records,
     delete_protected_record,
 )
+from audit.audit_service import record_event
 from security.encryption import encrypt_data, EncryptionError
 
 record_bp = Blueprint("records", __name__, url_prefix="/api/records")
 
 
 def _authenticated_user_id():
-    """Return the authenticated user's database ID."""
-    if not current_user.is_authenticated:
+    """Return the authenticated user's database ID from the secure session."""
+    user_id = session.get("user_id")
+    if user_id is None:
         return None
-    return current_user.get_id()
+    try:
+        return int(user_id)
+    except (TypeError, ValueError):
+        return None
 
 
 @record_bp.route("", methods=["POST"])
 def create_record():
-    """Encrypt and save a record for the authenticated user."""
+    """Encrypt and save a protected record with immutable original purpose (Objectives 1 & 2)."""
     user_id = _authenticated_user_id()
 
     if user_id is None:
@@ -39,6 +42,9 @@ def create_record():
     title = data.get("title")
     content = data.get("content")
     purpose = data.get("original_purpose")
+    conversation_id = data.get("conversation_id")
+    description = data.get("description")
+    classification = data.get("data_classification", "Confidential")
 
     if not all(
         isinstance(value, str) and value.strip()
@@ -66,6 +72,18 @@ def create_record():
             title=title.strip(),
             data_encrypted=encrypted_data.encode("utf-8"),
             original_purpose=purpose.strip(),
+            conversation_id=conversation_id.strip() if conversation_id else None,
+            description=description.strip() if description else f"Tracked record for {title.strip()}",
+            data_classification=classification.strip() if classification else "Confidential",
+        )
+
+        record_event(
+            event_type="RECORD_TRACKED",
+            description=f"Tracked data record #{record.id} with original purpose: '{record.original_purpose}'",
+            user_id=int(user_id),
+            conversation_id=conversation_id,
+            original_purpose=record.original_purpose,
+            decision="ALLOW",
         )
     except Exception:
         db.session.rollback()
@@ -74,6 +92,9 @@ def create_record():
     return jsonify({
         "id": record.id,
         "title": record.title,
+        "description": record.description,
+        "source_conversation": record.conversation_id or "Direct Submission",
+        "data_classification": record.data_classification,
         "original_purpose": record.original_purpose,
         "created_at": record.created_at.isoformat(),
     }), 201
@@ -81,7 +102,7 @@ def create_record():
 
 @record_bp.route("", methods=["GET"])
 def list_records():
-    """List records belonging to the authenticated user."""
+    """List records belonging to the authenticated user without exposing confidential plaintext."""
     user_id = _authenticated_user_id()
 
     if user_id is None:
@@ -93,6 +114,9 @@ def list_records():
         {
             "id": record.id,
             "title": record.title,
+            "description": record.description or f"Tracked data: {record.title}",
+            "source_conversation": record.conversation_id or "Session Direct",
+            "data_classification": record.data_classification or "Confidential",
             "original_purpose": record.original_purpose,
             "created_at": record.created_at.isoformat(),
         }
@@ -116,6 +140,9 @@ def retrieve_record(record_id):
     return jsonify({
         "id": record.id,
         "title": record.title,
+        "description": record.description or f"Tracked data: {record.title}",
+        "source_conversation": record.conversation_id or "Session Direct",
+        "data_classification": record.data_classification or "Confidential",
         "original_purpose": record.original_purpose,
         "created_at": record.created_at.isoformat(),
     }), 200
@@ -136,6 +163,11 @@ def remove_record(record_id):
 
     try:
         delete_protected_record(record_id)
+        record_event(
+            event_type="RECORD_DELETED",
+            description=f"Deleted protected record #{record_id}",
+            user_id=int(user_id),
+        )
     except Exception:
         db.session.rollback()
         return jsonify({"error": "Unable to delete record."}), 500

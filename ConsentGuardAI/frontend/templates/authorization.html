@@ -1,41 +1,167 @@
 {% extends "base.html" %}
 
-{% block title %}Authorization Check | ConsentGuardAI{% endblock %}
+{% block title %}Reuse Detection & Authorization | ConsentGuardAI{% endblock %}
+{% block page_title %}Policy Inspector & Reuse Analyzer{% endblock %}
+{% block page_subtitle %}Simulate and verify purpose compatibility, cross-session reuse detection, and gatekeeper decisions in real time{% endblock %}
 
 {% block content %}
-<section class="page-heading">
-    <h1>Authorization Check</h1>
-    <p>Check whether a data use is covered by active consent.</p>
-</section>
+<!-- Security Overview Banner -->
+<div class="card" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: #fff; border: 1px solid #334155; margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(147, 197, 253, 0.3);">POLICY ENFORCEMENT ENGINE</span>
+                <span style="font-size: 0.8rem; color: #94a3b8;">Zero Model Egress on Incompatible Purpose</span>
+            </div>
+            <h2 style="font-size: 1.35rem; margin: 0 0 6px; color: #fff; font-weight: 700;">Cross-Session Reuse Detection & Policy Determination</h2>
+            <p style="color: #cbd5e1; font-size: 0.86rem; max-width: 860px; margin: 0;">
+                ConsentGuardAI automatically decrypts protected records in isolated memory, verifies text-clause overlap across distinct conversation sessions, and compares the proposed purpose against the immutable original purpose using strict deterministic policy rules.
+            </p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="setInspectorPreset('prohibited')" style="background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); color: #f1f5f9;">
+                Scenario: External Disclosure
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="setInspectorPreset('warn')" style="background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); color: #f1f5f9;">
+                Scenario: Internal Training
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="setInspectorPreset('allowed')" style="background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); color: #f1f5f9;">
+                Scenario: Authorized Review
+            </button>
+        </div>
+    </div>
+</div>
 
-<section class="form-card">
-    <form id="authorization-form">
-        <label for="auth-user-id">User ID</label>
-        <input type="text" id="auth-user-id" name="user_id"
-               placeholder="Enter user ID" required>
+<!-- Interactive Policy Inspector Tool -->
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Live Policy Simulation & Reuse Evaluation</div>
+            <div class="card-subtitle">Evaluate any incoming prompt against existing protected records and test purpose compatibility before submission</div>
+        </div>
+    </div>
 
-        <label for="auth-purpose">Requested purpose</label>
-        <select id="auth-purpose" name="purpose" required>
-            <option value="">Select a purpose</option>
-            <option value="customer_support">Customer Support</option>
-            <option value="personalization">Personalization</option>
-            <option value="analytics">Analytics</option>
-            <option value="research">Research</option>
-        </select>
+    <form id="inspect-form">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="inspect-prompt" class="form-label" style="font-weight: 600;">Incoming Prompt to Analyze</label>
+                <textarea id="inspect-prompt" class="form-control" rows="3" placeholder="Enter prompt or prompt fragment containing sensitive project, HR, or confidential details..." required></textarea>
+            </div>
 
-        <label for="auth-category">Data category</label>
-        <select id="auth-category" name="data_category" required>
-            <option value="">Select a category</option>
-            <option value="profile">Profile</option>
-            <option value="email">Email</option>
-            <option value="activity">Activity</option>
-        </select>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="inspect-purpose" class="form-label" style="font-weight: 600;">Declared Purpose Scope</label>
+                <select id="inspect-purpose" class="form-select" style="margin-bottom: 10px;">
+                    <option value="External Marketing Announcement">External Marketing Announcement</option>
+                    <option value="Corporate Training Module">Corporate Training Module</option>
+                    <option value="HR Investigation Summary">HR Investigation Summary</option>
+                    <option value="Customer Support">Customer Support</option>
+                    <option value="Legal & Compliance Audit">Legal & Compliance Audit</option>
+                    <option value="Product Analytics">Product Analytics</option>
+                    <option value="CUSTOM">Custom Purpose...</option>
+                </select>
+                <input type="text" id="inspect-custom-purpose" class="form-control" placeholder="Specify custom purpose..." style="display: none;">
+            </div>
+        </div>
 
-        <button type="submit" class="button">Check Authorization</button>
+        <div style="display: flex; justify-content: flex-end;">
+            <button type="submit" class="btn btn-primary" id="btn-inspect">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                Execute Policy & Reuse Evaluation
+            </button>
+        </div>
     </form>
 
-    <div id="authorization-result" role="status" aria-live="polite"></div>
-</section>
+    <!-- Inspection Output Result Panel -->
+    <div id="inspection-result-box" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-color); display: none;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin: 0;">
+                Policy Evaluation Results
+            </h3>
+            <span id="res-timestamp" style="font-size: 0.78rem; color: var(--text-muted);">Real-time check completed</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px;">
+            <!-- Detection State -->
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 14px; border-radius: var(--radius-md);">
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Data Reuse Match</div>
+                <div id="res-reuse-badge" style="margin-top: 8px;">—</div>
+                <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 6px;" id="res-match-detail">Checking...</div>
+            </div>
+
+            <!-- Matched Record -->
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 14px; border-radius: var(--radius-md);">
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Matched Protected Asset</div>
+                <div id="res-record-id" style="font-weight: 700; font-size: 1.05rem; margin-top: 6px; color: var(--text-main);">—</div>
+                <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;" id="res-classification">Classification: —</div>
+            </div>
+
+            <!-- Purpose Comparison -->
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 14px; border-radius: var(--radius-md);">
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Purpose Compatibility</div>
+                <div style="font-size: 0.8rem; margin-top: 6px; line-height: 1.5;">
+                    <div style="color: var(--text-muted);">Bound: <strong id="res-original-purpose" style="color: #4338ca;">—</strong></div>
+                    <div style="color: var(--text-muted);">Requested: <strong id="res-requested-purpose" style="color: var(--text-main);">—</strong></div>
+                </div>
+            </div>
+
+            <!-- Final Authorization Decision -->
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 14px; border-radius: var(--radius-md);">
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Authorization Decision</div>
+                <div id="res-decision-badge" style="margin-top: 8px;">—</div>
+                <div style="font-size: 0.76rem; margin-top: 6px;" id="res-provider-status">—</div>
+            </div>
+        </div>
+
+        <!-- Detailed Policy Explanation Box -->
+        <div id="res-explanation-card" class="decision-alert-card ALLOW" style="font-size: 0.88rem; padding: 14px; border-radius: var(--radius-md);">
+            <div style="font-weight: 700; margin-bottom: 4px;">Policy Finding & Rationale:</div>
+            <div id="res-explanation-text">Waiting for evaluation...</div>
+        </div>
+    </div>
+</div>
+
+<!-- All Recent Detection Events (Real Audit Source) -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Recent Enforcement Activity</div>
+            <div class="card-subtitle">Real-time record of cross-session reuse detections and purpose authorization evaluations</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="loadRecentDetections()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -1px; margin-right: 4px;">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+            </svg>
+            Refresh
+        </button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Detection State</th>
+                    <th>Matched Asset</th>
+                    <th>Original Purpose</th>
+                    <th>Requested Purpose</th>
+                    <th>Decision</th>
+                    <th>Gatekeeper Egress</th>
+                    <th>Policy Reason</th>
+                </tr>
+            </thead>
+            <tbody id="detections-table-body">
+                <tr>
+                    <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                        Loading recent enforcement history...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}

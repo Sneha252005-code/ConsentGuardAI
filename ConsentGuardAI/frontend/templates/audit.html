@@ -1,48 +1,110 @@
 {% extends "base.html" %}
 
-{% block title %}Audit Log | ConsentGuardAI{% endblock %}
+{% block title %}Decision History & Audit | ConsentGuardAI{% endblock %}
+{% block page_title %}Decision History & Audit Trail{% endblock %}
+{% block page_subtitle %}Tamper-evident cryptographic ledger of all purpose-based authorization events, reuse checks, and model transmissions{% endblock %}
 
 {% block content %}
-<section class="page-heading">
-    <h1>Audit Log</h1>
-    <p>Review authorization and consent-related events when audit logging is available.</p>
-</section>
-
-<section class="card">
-    <div class="section-header">
+<!-- Cryptographic Integrity Banner -->
+<div class="card" style="background: linear-gradient(135deg, #064e3b, #0f172a); color: #fff; border: 1px solid #059669; margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
         <div>
-            <h2>Recent Events</h2>
-            <p>Use this page to review recorded activity.</p>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(110, 231, 183, 0.3);">CRYPTOGRAPHIC ASSURANCE</span>
+                <span style="font-size: 0.8rem; color: #a7f3d0;">SHA-256 Chained Hash Sequence</span>
+            </div>
+            <h2 style="font-size: 1.35rem; margin: 0 0 6px; color: #fff; font-weight: 700;">Tamper-Evident Audit Ledger</h2>
+            <p style="color: #d1fae5; font-size: 0.86rem; max-width: 820px; margin: 0;">
+                Every data-tracking event, reuse detection check, and authorization decision is cryptographically bound to the previous entry via SHA-256 hashing. Any unauthorized modification in storage breaks the verification chain immediately.
+            </p>
         </div>
-        <button type="button" class="button" id="refresh-audit">
-            Refresh
-        </button>
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div id="integrity-badge" style="font-size: 0.85rem; font-weight: 600; color: #d1fae5; display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.25); padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.15);">
+                <span>🔒</span> Chain Status: Checking...
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="verifyIntegrityChain()" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); color: #fff;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -1px; margin-right: 4px;">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Verify Hash Chain
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Filters & Search Controls -->
+<div class="card" style="padding: 16px 20px; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <!-- Filter by Decision -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label for="filter-decision" style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Decision:</label>
+                <select id="filter-decision" class="form-select" style="width: auto; padding: 6px 12px; font-size: 0.82rem;" onchange="applyAuditFilters()">
+                    <option value="ALL" selected>All (ALLOW / WARN / BLOCK)</option>
+                    <option value="ALLOW">ALLOW Only</option>
+                    <option value="WARN">WARN Only</option>
+                    <option value="BLOCK">BLOCK Only</option>
+                </select>
+            </div>
+
+            <!-- Filter by Reuse State -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label for="filter-reuse" style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Reuse State:</label>
+                <select id="filter-reuse" class="form-select" style="width: auto; padding: 6px 12px; font-size: 0.82rem;" onchange="applyAuditFilters()">
+                    <option value="ALL" selected>All Events</option>
+                    <option value="REUSE_ONLY">Reuse Detected Only</option>
+                    <option value="NEW_ONLY">New Data / Direct</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="audit-search" class="form-control" placeholder="Search reference, purpose, or reason..." style="width: 260px; padding: 6px 12px; font-size: 0.82rem;" oninput="applyAuditFilters()">
+            <button class="btn btn-secondary btn-sm" onclick="loadAuditEvents()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -1px; margin-right: 4px;">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                </svg>
+                Refresh
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Structured Audit Log Table -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Chronological Enforcement Ledger</div>
+            <div class="card-subtitle">Verified record of all prompt evaluations, data ingestions, and model egress decisions</div>
+        </div>
+        <span class="badge badge-neutral" id="audit-entries-count">0 Entries</span>
     </div>
 
-    <p id="audit-message" role="status" aria-live="polite">
-        Audit data has not been loaded.
-    </p>
-
-    <div class="table-wrapper">
-        <table>
+    <div class="table-responsive">
+        <table class="data-table">
             <thead>
                 <tr>
                     <th>Timestamp</th>
-                    <th>Event</th>
-                    <th>User ID</th>
-                    <th>Details</th>
+                    <th>Request Ref</th>
+                    <th>Event Type</th>
+                    <th>Reuse Detected</th>
+                    <th>Original Purpose</th>
+                    <th>Requested Purpose</th>
+                    <th>Decision</th>
+                    <th>Model Egress</th>
+                    <th>Policy Description & Rationale</th>
                 </tr>
             </thead>
             <tbody id="audit-table-body">
                 <tr>
-                    <td colspan="4">
-                        Audit records will appear here when an audit API is connected.
+                    <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 32px;">
+                        Loading audit logs from database...
                     </td>
                 </tr>
             </tbody>
         </table>
     </div>
-</section>
+</div>
 {% endblock %}
 
 {% block extra_js %}

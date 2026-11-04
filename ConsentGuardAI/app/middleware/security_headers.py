@@ -1,4 +1,3 @@
-
 from flask import Flask
 
 
@@ -12,9 +11,13 @@ def register_security_headers(app: Flask) -> None:
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
+            "font-src 'self' data:; "
             "object-src 'none'; "
             "frame-ancestors 'none'; "
-            "base-uri 'self'"
+            "base-uri 'self';"
         )
         response.headers["Permissions-Policy"] = (
             "camera=(), microphone=(), geolocation=()"

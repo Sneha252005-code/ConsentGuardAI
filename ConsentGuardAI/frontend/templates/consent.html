@@ -1,54 +1,78 @@
 {% extends "base.html" %}
 
-{% block title %}Manage Consent | ConsentGuardAI{% endblock %}
+{% block title %}Consent Scopes | ConsentGuardAI{% endblock %}
+{% block page_title %}Consent Scopes & Authorizations{% endblock %}
+{% block page_subtitle %}Define and grant authorized purpose scopes and data category permissions for user data{% endblock %}
 
 {% block content %}
-<section class="page-heading">
-    <h1>Consent Management</h1>
-    <p>Choose the purpose and data categories you agree to share.</p>
-</section>
+<div style="max-width: 680px; margin: 10px auto;">
+    <div class="card">
+        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 18px;">
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+            </div>
+            <div>
+                <h2 style="font-size: 1.15rem; color: var(--text-main); margin: 0; font-weight: 700;">Grant Authorized Purpose Scope</h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 3px 0 0;">Authorized scopes govern prompt generation and cross-session reuse verification</p>
+            </div>
+        </div>
 
-<section class="form-card">
-    <form id="consent-form">
-        <label for="user_id">User ID</label>
-        <input type="text" id="user_id" name="user_id"
-               placeholder="Enter your user ID" required>
+        <form id="consent-form">
+            <div class="form-group" style="margin-bottom: 18px;">
+                <label for="user_id" class="form-label" style="font-weight: 600;">Subject User Identifier</label>
+                <input type="text" id="user_id" name="user_id" class="form-control" placeholder="e.g. 1 or subject identifier" required>
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 5px;">The user whose data permissions are being explicitly bound.</div>
+            </div>
 
-        <label for="purpose">Purpose</label>
-        <select id="purpose" name="purpose" required>
-            <option value="">Select a purpose</option>
-            <option value="customer_support">Customer Support</option>
-            <option value="personalization">Personalization</option>
-            <option value="analytics">Analytics</option>
-            <option value="research">Research</option>
-        </select>
+            <div class="form-group" style="margin-bottom: 18px;">
+                <label for="purpose" class="form-label" style="font-weight: 600;">Authorized Purpose Scope</label>
+                <select id="purpose" name="purpose" class="form-select" required>
+                    <option value="">Select an authorized purpose scope...</option>
+                    <option value="HR Investigation Summary">HR Investigation Summary (POSCO & Internal Cases)</option>
+                    <option value="Customer Support">Customer Support & Inquiries</option>
+                    <option value="Legal & Compliance Audit">Legal & Compliance Audit</option>
+                    <option value="Personalization">Service Personalization</option>
+                    <option value="Analytics">Internal Operational Analytics</option>
+                    <option value="Research & Development">Research & Development</option>
+                </select>
+            </div>
 
-        <fieldset>
-            <legend>Data categories</legend>
+            <div class="form-group" style="margin-bottom: 22px;">
+                <label class="form-label" style="font-weight: 600;">Permitted Data Categories</label>
+                <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.88rem; color: var(--text-main);">
+                        <input type="checkbox" name="data_categories" value="confidential" checked style="accent-color: var(--primary-color);">
+                        <span><strong>Confidential & Sensitive</strong> (Investigation notes, internal incident logs)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.88rem; color: var(--text-main);">
+                        <input type="checkbox" name="data_categories" value="profile" style="accent-color: var(--primary-color);">
+                        <span><strong>Profile & Identity</strong> (Employee identifiers, role metadata, names)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.88rem; color: var(--text-main);">
+                        <input type="checkbox" name="data_categories" value="email" style="accent-color: var(--primary-color);">
+                        <span><strong>Communications & Messages</strong> (Transcripts, interview statements)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.88rem; color: var(--text-main);">
+                        <input type="checkbox" name="data_categories" value="activity" style="accent-color: var(--primary-color);">
+                        <span><strong>Activity Records</strong> (System timestamps, audit events)</span>
+                    </label>
+                </div>
+            </div>
 
-            <label class="checkbox-label">
-                <input type="checkbox" name="data_categories"
-                       value="profile">
-                Profile
-            </label>
-
-            <label class="checkbox-label">
-                <input type="checkbox" name="data_categories"
-                       value="email">
-                Email
-            </label>
-
-            <label class="checkbox-label">
-                <input type="checkbox" name="data_categories"
-                       value="activity">
-                Activity
-            </label>
-        </fieldset>
-
-        <button type="submit" class="button">Grant Consent</button>
-        <p id="consent-message" role="status"></p>
-    </form>
-</section>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; font-weight: 600; font-size: 0.95rem;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 6px;">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                Grant & Cryptographically Record Scope
+            </button>
+            <p id="consent-message" style="margin-top: 14px; font-size: 0.85rem; text-align: center;"></p>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}

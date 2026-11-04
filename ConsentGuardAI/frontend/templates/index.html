@@ -1,65 +1,122 @@
-
-<!-- index.html -->
 {% extends "base.html" %}
 
-{% block title %}Home | ConsentGuardAI{% endblock %}
+{% block title %}Dashboard | ConsentGuardAI{% endblock %}
+{% block page_title %}Security &amp; Privacy Dashboard{% endblock %}
+{% block page_subtitle %}Live telemetry on purpose-based authorization, data tracking, and reuse protection{% endblock %}
 
 {% block content %}
-<section class="hero">
-    <p class="eyebrow">PRIVACY-FIRST AI</p>
-
-    <h1>Your Data. Your Consent. Your Control.</h1>
-
-    <p class="hero-text">
-        ConsentGuardAI helps ensure that personal data is used only
-        for purposes covered by the user's consent.
-    </p>
-
-    <div class="hero-actions">
-        <a class="button" href="/consent">Manage Consent</a>
-
-        <a class="button button-secondary" href="/authorization">
-            Check Authorization
-        </a>
-
-        <a class="button" href="/chat">Open AI Chat</a>
+<!-- Top Security Status Overview Banner -->
+<div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: #fff; border: 1px solid #334155; margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 600;">ACTIVE GATEKEEPER</span>
+                <span style="font-size: 0.8rem; color: #94a3b8;">Zero Data Egress on Warn / Block</span>
+            </div>
+            <h2 style="font-size: 1.4rem; margin: 0 0 6px 0; color: #fff; font-weight: 700;">Purpose-Bound Data Protection Active</h2>
+            <p style="color: #94a3b8; font-size: 0.88rem; max-width: 780px; margin: 0;">
+                ConsentGuardAI continuously verifies prompt requests against tracked assets, detects cross-session data reuse, and enforces strict purpose compatibility before model invocation.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn btn-secondary btn-sm" onclick="loadDashboardStats()">
+                <span>🔄</span> Refresh Telemetry
+            </button>
+            <a href="/chat" class="btn btn-primary btn-sm">
+                <span>💬</span> Open AI Workspace
+            </a>
+        </div>
     </div>
-</section>
+</div>
 
-<section class="card-grid">
-    <article class="card">
-        <h2>Consent Management</h2>
-        <p>
-            Grant or withdraw permission for specific data categories
-            and purposes.
-        </p>
-        <a href="/consent">Manage consent →</a>
-    </article>
+<!-- Real-Time Metrics Grid -->
+<div class="metrics-grid">
+    <!-- Stat 1: Tracked Records -->
+    <div class="metric-card">
+        <div class="metric-icon-box metric-icon-indigo">📁</div>
+        <div class="metric-data">
+            <div class="metric-label">Protected Assets</div>
+            <div class="metric-value" id="stat-total-records">—</div>
+            <div class="metric-meta">Encrypted data records tracked</div>
+        </div>
+    </div>
 
-    <article class="card">
-        <h2>Purpose-Based Access</h2>
-        <p>
-            Check whether a proposed data use matches an active consent.
-        </p>
-        <a href="/authorization">Check access →</a>
-    </article>
+    <!-- Stat 2: Purpose-Bound Assets -->
+    <div class="metric-card">
+        <div class="metric-icon-box metric-icon-emerald">🔒</div>
+        <div class="metric-data">
+            <div class="metric-label">Purpose Bound</div>
+            <div class="metric-value" id="stat-purpose-records">—</div>
+            <div class="metric-meta">Immutable purpose references</div>
+        </div>
+    </div>
 
-    <article class="card">
-        <h2>AI Chat</h2>
-        <p>
-            Ask questions and receive AI responses after authorization
-            and protected-data reuse checks.
-        </p>
-        <a href="/chat">Start chatting →</a>
-    </article>
+    <!-- Stat 3: Reuse Detections -->
+    <div class="metric-card">
+        <div class="metric-icon-box metric-icon-amber">🔍</div>
+        <div class="metric-data">
+            <div class="metric-label">Reuse Detections</div>
+            <div class="metric-value" id="stat-reuse-attempts">—</div>
+            <div class="metric-meta">Cross-session matches identified</div>
+        </div>
+    </div>
 
-    <article class="card">
-        <h2>Audit and Records</h2>
-        <p>
-            Explore stored records and review consent-related activity.
-        </p>
-        <a href="/record">View records →</a>
-        <a href="/audit">View audit page →</a>
-    </article>
-</section>
+    <!-- Stat 4: Policy Enforcement -->
+    <div class="metric-card">
+        <div class="metric-icon-box metric-icon-rose">⚖️</div>
+        <div class="metric-data">
+            <div class="metric-label">Authorization Outcomes</div>
+            <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+                <span class="badge badge-ALLOW" id="stat-allow-count">ALLOW: 0</span>
+                <span class="badge badge-WARN" id="stat-warn-count">WARN: 0</span>
+                <span class="badge badge-BLOCK" id="stat-block-count">BLOCK: 0</span>
+            </div>
+            <div class="metric-meta" style="margin-top: 6px;">Live gatekeeper decisions</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Policy Enforcement Activity -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <div class="card-title">Recent Enforcement Activity</div>
+            <div class="card-subtitle">Live ledger of data reuse detection and purpose authorization outcomes</div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="/audit" class="btn btn-secondary btn-sm">Full Audit Ledger →</a>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Request ID</th>
+                    <th>Matched Asset</th>
+                    <th>Bound Purpose</th>
+                    <th>Requested Purpose</th>
+                    <th>Authorization</th>
+                    <th>Model Egress</th>
+                    <th>Policy Finding</th>
+                </tr>
+            </thead>
+            <tbody id="dashboard-reuse-table-body">
+                <tr>
+                    <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 32px;">
+                        Loading live telemetry...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", loadDashboardStats);
+</script>
 {% endblock %}
