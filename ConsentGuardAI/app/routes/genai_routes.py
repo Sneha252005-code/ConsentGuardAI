@@ -354,10 +354,14 @@ def generate():
             "sent_to_provider": False,
             "conversation_id": conversation_id,
             "request_ref": request_ref,
+            "provider_source": "none",
+            "provider_label": "Withheld by Gatekeeper",
         }), 200
 
     # 4. Request is ALLOWED -> Call AI Provider
     ai_response = None
+    provider_source = "mock"
+    provider_label = "Local Mock Provider"
     try:
         from genai_gateway.provider_client import generate_intelligent_response
 
@@ -377,15 +381,23 @@ def generate():
             # If rejected by prompt_filter (e.g. raw credentials), surface clear message
             if "sensitive information" in gateway_result.get("message", "").lower() or "unsafe instruction" in gateway_result.get("message", "").lower():
                 ai_response = f"Gateway Security Filter: {gateway_result.get('message')}"
+                provider_source = "filter"
+                provider_label = "Gateway Security Filter"
             else:
                 ai_response = generate_intelligent_response(prompt)
+                provider_source = "local_fallback"
+                provider_label = "Local Fallback Engine"
         else:
             ai_response = gateway_result.get("response") or generate_intelligent_response(prompt)
+            provider_source = gateway_result.get("provider_source") or getattr(gateway.provider, "last_provider_source", "mock")
+            provider_label = gateway_result.get("provider_label") or getattr(gateway.provider, "last_provider_label", "Local Mock Provider")
 
     except Exception as exc:
         logger.exception("AI provider request failed")
         from genai_gateway.provider_client import generate_intelligent_response
         ai_response = generate_intelligent_response(prompt)
+        provider_source = "local_fallback"
+        provider_label = f"Local Fallback Engine ({type(exc).__name__})"
 
     # Save assistant message to DB
     try:
@@ -396,7 +408,7 @@ def generate():
             content=ai_response,
             purpose=purpose,
             decision="ALLOW",
-            decision_reason="Authorized for declared purpose",
+            decision_reason=f"Authorized for declared purpose | Provider: {provider_label}",
         )
     except Exception:
         pass
@@ -404,7 +416,7 @@ def generate():
     # Record successful generation audit event
     record_event(
         event_type="GENERATION_ALLOWED",
-        description=f"Generation completed for purpose: '{purpose}'",
+        description=f"Generation completed for purpose: '{purpose}' via {provider_label}",
         user_id=authenticated_user_id,
         conversation_id=conversation_id,
         request_ref=request_ref,
@@ -430,4 +442,6 @@ def generate():
         "sent_to_provider": True,
         "conversation_id": conversation_id,
         "request_ref": request_ref,
+        "provider_source": provider_source,
+        "provider_label": provider_label,
     }), 200

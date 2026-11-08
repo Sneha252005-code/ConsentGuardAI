@@ -880,3 +880,83 @@ textarea.form-control:focus {
     color: #7f1d1d;
     line-height: 1.5;
 }
+
+/* Provider Source Badges & Transparency */
+.security-strip-egress.provider-openai {
+    color: #1d4ed8;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+}
+
+.security-strip-egress.provider-fallback {
+    color: #b45309;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+}
+
+.security-strip-egress.provider-mock {
+    color: #475569;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.provider-pill {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.2px;
+}
+
+.provider-pill.openai {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+}
+
+.provider-pill.fallback {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.provider-pill.mock {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+
+.badge-provider {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.badge-provider-openai {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+
+.badge-provider-local_fallback {
+    background-color: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+
+.badge-provider-mock {
+    background-color: #f8fafc;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.badge-provider-withheld {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}

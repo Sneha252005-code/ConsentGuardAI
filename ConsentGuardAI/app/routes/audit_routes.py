@@ -81,7 +81,8 @@ def check_audit_integrity():
     if user_id is None:
         return jsonify({"error": "Authentication required"}), 401
 
-    events = fetch_recent_events(limit=100, user_id=user_id)
+    from database.models import AuditLog
+    events = AuditLog.query.order_by(AuditLog.created_at.asc(), AuditLog.id.asc()).all()
 
     return jsonify({
         "integrity_valid": verify_audit_chain(events),

@@ -129,10 +129,16 @@ def generate_intelligent_response(prompt: str) -> str:
 class MockProvider:
     """A local mock AI provider for development and testing."""
 
+    def __init__(self):
+        self.last_provider_source = "mock"
+        self.last_provider_label = "Local Mock Provider"
+
     def generate(self, prompt: str) -> str:
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("Prompt must not be empty.")
 
+        self.last_provider_source = "mock"
+        self.last_provider_label = "Local Mock Provider"
         return generate_intelligent_response(prompt)
 
 
@@ -142,6 +148,8 @@ class OpenAIProvider:
     def __init__(self, api_key=None, model=None):
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        self.last_provider_source = "openai"
+        self.last_provider_label = f"OpenAI ({self.model})"
 
         if not self.api_key:
             raise ValueError("OPENAI_API_KEY is not configured.")
@@ -171,7 +179,12 @@ class OpenAIProvider:
             )
             content = response.choices[0].message.content
             if content and content.strip():
+                self.last_provider_source = "openai"
+                self.last_provider_label = f"OpenAI ({self.model})"
                 return content.strip()
+
+            self.last_provider_source = "local_fallback"
+            self.last_provider_label = "Local Fallback Engine (Empty OpenAI Response)"
             return generate_intelligent_response(prompt)
 
         except Exception as exc:
@@ -182,4 +195,6 @@ class OpenAIProvider:
                 type(exc).__name__,
                 exc,
             )
+            self.last_provider_source = "local_fallback"
+            self.last_provider_label = f"Local Fallback Engine ({type(exc).__name__})"
             return generate_intelligent_response(prompt)

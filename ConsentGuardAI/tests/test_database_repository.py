@@ -1,4 +1,3 @@
-
 """Tests for persistent consent database storage."""
 
 import pytest
@@ -10,12 +9,13 @@ from database.repositories import ConsentDatabaseRepository
 
 @pytest.fixture
 def repository():
-    app = create_app()
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite://"
-    app.config["TESTING"] = True
+    app = create_app({
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+        "TESTING": True,
+        "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+    })
 
     with app.app_context():
-        db.drop_all()
         db.create_all()
         yield ConsentDatabaseRepository()
         db.session.remove()

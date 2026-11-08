@@ -61,10 +61,20 @@ def verify_audit_log(log):
 
 
 def verify_audit_chain(logs):
-    """Verify hashes and links in chronological order."""
-    previous_hash = None
+    """Verify hashes and links in chronological order across the global audit trail."""
+    if not logs:
+        return True
 
-    for log in sorted(logs, key=lambda item: (item.created_at, item.id or 0)):
+    sorted_logs = sorted(logs, key=lambda item: (item.created_at, item.id or 0))
+
+    # Verify the first entry's cryptographic hash
+    first_log = sorted_logs[0]
+    if not verify_audit_log(first_log):
+        return False
+
+    previous_hash = first_log.entry_hash
+
+    for log in sorted_logs[1:]:
         if log.previous_hash != previous_hash:
             return False
 
