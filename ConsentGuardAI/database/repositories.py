@@ -338,7 +338,7 @@ def get_audit_logs(limit: int = 100, user_id: Optional[int] = None) -> list[Audi
     query = AuditLog.query
     if user_id is not None:
         query = query.filter_by(user_id=int(user_id))
-    return query.order_by(AuditLog.created_at.desc()).limit(limit).all()
+    return query.order_by(AuditLog.created_at.desc(), AuditLog.id.desc()).limit(limit).all()
 
 
 # ---------------------------------------------------------------------------

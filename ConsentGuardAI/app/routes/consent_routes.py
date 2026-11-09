@@ -1,9 +1,12 @@
+"""API routes for purpose-specific consent management with audit logging."""
 
-"""API routes for purpose-specific consent management."""
-
-from flask import Blueprint, jsonify, request
+import logging
+from flask import Blueprint, jsonify, request, session, current_app
 
 from app.consent_context import consent_service
+from audit.audit_service import record_event
+
+logger = logging.getLogger(__name__)
 
 consent_bp = Blueprint(
     "consent",
@@ -12,15 +15,42 @@ consent_bp = Blueprint(
 )
 
 
+def _authenticated_user_id(fallback_user_id=None):
+    """Return the authenticated user's integer database ID from the secure session."""
+    session_user_id = session.get("user_id")
+    if session_user_id is not None:
+        try:
+            return int(session_user_id)
+        except (TypeError, ValueError):
+            return None
+
+    if current_app.config.get("TESTING") and fallback_user_id is not None:
+        try:
+            return int(fallback_user_id)
+        except (TypeError, ValueError):
+            return 1
+    elif current_app.config.get("TESTING"):
+        return 1
+
+    return None
+
+
 @consent_bp.post("/")
 def grant_consent():
     """Grant consent for specific data categories and a purpose."""
+    auth_user_id = _authenticated_user_id()
+    if auth_user_id is None:
+        return jsonify({"error": "Authentication required."}), 401
+
     payload = request.get_json(silent=True)
 
     if not isinstance(payload, dict):
         return jsonify({"error": "A JSON object is required."}), 400
 
     user_id = payload.get("user_id")
+    if not user_id or not isinstance(user_id, str) or not user_id.strip():
+        user_id = str(auth_user_id)
+
     purpose = payload.get("purpose")
     categories = payload.get("data_categories")
 
@@ -44,12 +74,32 @@ def grant_consent():
 
     try:
         record = consent_service.grant_consent(
-            user_id=user_id,
-            purpose=purpose,
-            data_categories=categories,
+            user_id=user_id.strip(),
+            purpose=purpose.strip(),
+            data_categories=[c.strip() for c in categories],
         )
     except (TypeError, ValueError) as exc:
         return jsonify({"error": str(exc)}), 400
+
+    # Record audit event using the authenticated user's integer session ID
+    try:
+        categories_str = ", ".join(record.data_categories)
+        record_event(
+            event_type="CONSENT_GRANTED",
+            description=(
+                f"Consent scope granted (Consent ID: {record.id}) for purpose '{record.purpose}' "
+                f"with permitted data categories: [{categories_str}]"
+            ),
+            user_id=auth_user_id,
+            request_ref=f"CS-{record.id[:8].upper()}",
+            original_purpose=record.purpose,
+            requested_purpose=record.purpose,
+            decision="ALLOW",
+            decision_reason=f"Explicit user consent granted for categories: {categories_str}",
+            sent_to_provider=False,
+        )
+    except Exception as exc:
+        logger.exception("Failed to record consent grant audit event: %s", exc)
 
     return jsonify({
         "consent_id": record.id,
@@ -84,10 +134,33 @@ def get_consent(consent_id):
 @consent_bp.post("/<consent_id>/withdraw")
 def withdraw_consent(consent_id):
     """Withdraw an existing consent record."""
+    auth_user_id = _authenticated_user_id()
+    if auth_user_id is None:
+        return jsonify({"error": "Authentication required."}), 401
+
     try:
         record = consent_service.withdraw_consent(consent_id)
     except KeyError:
         return jsonify({"error": "Consent not found."}), 404
+
+    # Record audit event using the authenticated user's integer session ID
+    try:
+        record_event(
+            event_type="CONSENT_WITHDRAWN",
+            description=(
+                f"Consent scope withdrawn (Consent ID: {record.id}) for purpose '{record.purpose}'. "
+                f"Future reuse and generation requests under this scope are denied."
+            ),
+            user_id=auth_user_id,
+            request_ref=f"CS-WD-{record.id[:8].upper()}",
+            original_purpose=record.purpose,
+            requested_purpose=record.purpose,
+            decision="BLOCK",
+            decision_reason="Consent scope revoked by user; future access denied",
+            sent_to_provider=False,
+        )
+    except Exception as exc:
+        logger.exception("Failed to record consent withdrawal audit event: %s", exc)
 
     return jsonify({
         "consent_id": record.id,

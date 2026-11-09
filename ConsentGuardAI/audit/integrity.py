@@ -65,7 +65,7 @@ def verify_audit_chain(logs):
     if not logs:
         return True
 
-    sorted_logs = sorted(logs, key=lambda item: (item.created_at, item.id or 0))
+    sorted_logs = sorted(logs, key=lambda item: (item.id or 0, item.created_at))
 
     # Verify the first entry's cryptographic hash
     first_log = sorted_logs[0]
